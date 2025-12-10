@@ -1,0 +1,108 @@
+{% extends 'ReviewApp/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Dashboard</h2>
+    
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <p class="mb-0">Welcome, <strong>{{ request.user.username }}</strong>!</p>
+    </div>
+
+    <div class="card p-4 mb-4 shadow-sm">
+        <h4>Upload Document</h4>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-primary">Upload & Run AI</button>
+        </form>
+    </div>
+
+    <h3>Your Documents</h3>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>File Name</th>
+                    <th>Uploaded At</th>
+                    <th>AI Status</th>
+                    <th>Risk Score</th>
+                    <th>Confidence</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for doc in documents %}
+                <tr>
+                    <td>
+                        <a href="{{ doc.file.url }}" target="_blank" class="text-decoration-none fw-bold">
+                            {{ doc.file.name|slice:"8:" }}
+                        </a>
+                    </td>
+                    
+                    <td>{{ doc.uploaded_at|date:"M d, H:i" }}</td>
+                    
+                    <td>
+                        {% if doc.ai_status == 'Positive' %}
+                            <span class="badge bg-success">✅ Positive</span>
+                        {% else %}
+                            <span class="badge bg-danger">❌ Negative</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        <strong>{{ doc.ai_score }}</strong> <span class="text-muted">/ 100</span>
+                    </td>
+                    
+                    <td>
+                        {{ doc.ai_confidence|floatformat:2 }}
+                    </td>
+
+                    <td>
+                        <button type="button" class="btn btn-sm btn-info text-white" data-bs-toggle="modal" data-bs-target="#modal{{ doc.id }}">
+                            View Text
+                        </button>
+                        
+                        <div class="modal fade" id="modal{{ doc.id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Extracted Content</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body text-start">
+                                        <h6>Analysis for: <strong>{{ doc.file.name|slice:"8:" }}</strong></h6>
+                                        <hr>
+                                        <p class="text-muted small">Raw text extracted by OCR:</p>
+                                        <pre style="white-space: pre-wrap; background: #f8f9fa; padding: 15px; border: 1px solid #dee2e6; border-radius: 5px; max-height: 400px; overflow-y: auto;">{{ doc.extracted_text }}</pre>
+                                        
+                                        <a href="{% url 'download_report' doc.id %}" class="btn btn-sm btn-outline-dark mb-1">
+                                            📄 Download PDF
+                                        </a>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-4">No documents uploaded yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
