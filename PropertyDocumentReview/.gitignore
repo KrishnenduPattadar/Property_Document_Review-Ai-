@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.pyc
+
+# Environment & Virtual Env
+venv/
+env/
+.env
+
+# Database (Optional: Keep this if you want to share the DB)
+db.sqlite3
+
+# User Uploads
+media/
