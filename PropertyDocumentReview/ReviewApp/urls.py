@@ -18,6 +18,7 @@ urlpatterns = [
     # Password Reset Flow
     path('password-reset/', auth_views.PasswordResetView.as_view(
         template_name='ReviewApp/form_generic.html',
+        email_template_name='ReviewApp/password_reset_email.html',
         extra_context={'title': 'Reset Password', 'btn_text': 'Email Me Link'}
     ), name='password_reset'),
 

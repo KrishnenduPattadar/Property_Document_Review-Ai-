@@ -17,6 +17,13 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
+
+from django.core.paginator import Paginator
+#ai integration
+import google.generativeai as genai
+import os
+import json
+from dotenv import load_dotenv
 # --- HELPER 1: Text Extraction Logic ---
 def extract_text_from_file(file_path):
     # 1. Point to your specific Tesseract installation
@@ -41,49 +48,110 @@ def extract_text_from_file(file_path):
     return text.strip()
 
 # --- HELPER 2: AI Analysis Logic ---
+# def analyze_document(text):
+#     text_lower = text.lower()
+    
+#     # EXPANDED Positive Keywords (Real Estate Terms)
+#     positive_keywords = [
+#         # Document Names
+#         'sale deed', 'title deed', 'conveyance deed', 'gift deed', 'lease deed',
+#         'partition deed', 'release deed', 'settlement deed', 'power of attorney',
+#         'encumbrance certificate', 'completion certificate', 'occupancy certificate', 
+#         'tax receipt', 'khata', 'patta', 'chitta', 'adangal',
+#         # Positive Phrases
+#         'absolute owner', 'clear title', 'marketable title', 'free from encumbrance',
+#         'registered', 'approved', 'sanctioned', 'no objection', 'noc',
+#         'fee simple', 'freehold', 'lawful owner', 'peaceful possession',
+#         'right to sell', 'valid', 'authorized', 'permit', 'paid', 'receipt'
+#     ]
+
+#     # EXPANDED Negative Keywords (Risks)
+#     negative_keywords = [
+#         'dispute', 'litigation', 'stay order', 'injunction', 'court case',
+#         'encumbrance', 'mortgage', 'lien', 'charge', 'hypothecation',
+#         'illegal', 'unauthorized', 'encroachment', 'violation', 'deviation',
+#         'forgery', 'fraud', 'cancelled', 'void', 'prohibited', 'banned',
+#         'arrears', 'due', 'default', 'pending', 'objection', 'rejected'
+#     ]
+
+#     pos_count = sum(1 for word in positive_keywords if word in text_lower)
+#     neg_count = sum(1 for word in negative_keywords if word in text_lower)
+    
+#     # --- Logic remains the same below ---
+#     if (pos_count + neg_count) == 0:
+#         return "Negative", 0, 0.0 
+
+#     if neg_count > 0:
+#         status = "Negative"
+#         score = max(10, 100 - (neg_count * 20)) 
+#         confidence = 0.85
+#     else:
+#         status = "Positive"
+#         score = min(98, 50 + (pos_count * 10))
+#         confidence = 0.90
+
+#     return status, score, confidence
+
+# gemini ai integration
+
+# Configure the API with your key
+load_dotenv()
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+# for m in genai.list_models():
+#     if 'generateContent' in m.supported_generation_methods:
+# #         print(m.name)
+
+# AI Status (Positive / Negative)
+# Positive: Gemini read the text and found words like "Absolute Owner" or "Clear Title," deciding it is safe to buy.
+# Negative: Gemini found risky words like "Litigation," "Dispute," or "Mortgage," or the document was too blurry/empty to be trusted.
+
+# Risk Score (0 - 100)
+# 100: Perfectly safe.
+# 0: Extremely risky or unreadable.
+# Example: If a document has a "Mortgage" but it is "Paid off," Gemini might give it a 60/100 (mostly safe but cautious), whereas your old code might have just given it a 0.
+
+# Confidence (0.0 - 1.0)
+# This is Gemini telling you: "How sure am I?"
+# 0.99 (High): The text was very clear, and the AI is certain about its decision.
+# 0.50 (Low): The text might be short, blurry, or confusing, so the AI is guessing.
 def analyze_document(text):
-    text_lower = text.lower()
     
-    # EXPANDED Positive Keywords (Real Estate Terms)
-    positive_keywords = [
-        # Document Names
-        'sale deed', 'title deed', 'conveyance deed', 'gift deed', 'lease deed',
-        'partition deed', 'release deed', 'settlement deed', 'power of attorney',
-        'encumbrance certificate', 'completion certificate', 'occupancy certificate', 
-        'tax receipt', 'khata', 'patta', 'chitta', 'adangal',
-        # Positive Phrases
-        'absolute owner', 'clear title', 'marketable title', 'free from encumbrance',
-        'registered', 'approved', 'sanctioned', 'no objection', 'noc',
-        'fee simple', 'freehold', 'lawful owner', 'peaceful possession',
-        'right to sell', 'valid', 'authorized', 'permit', 'paid', 'receipt'
-    ]
-
-    # EXPANDED Negative Keywords (Risks)
-    negative_keywords = [
-        'dispute', 'litigation', 'stay order', 'injunction', 'court case',
-        'encumbrance', 'mortgage', 'lien', 'charge', 'hypothecation',
-        'illegal', 'unauthorized', 'encroachment', 'violation', 'deviation',
-        'forgery', 'fraud', 'cancelled', 'void', 'prohibited', 'banned',
-        'arrears', 'due', 'default', 'pending', 'objection', 'rejected'
-    ]
-
-    pos_count = sum(1 for word in positive_keywords if word in text_lower)
-    neg_count = sum(1 for word in negative_keywords if word in text_lower)
+    # 1. Setup the Model
+    model = genai.GenerativeModel('gemini-flash-latest')    
+    prompt = f"""
+    You are a Real Estate Legal Expert. Analyze the following extracted text from a property document.
     
-    # --- Logic remains the same below ---
-    if (pos_count + neg_count) == 0:
-        return "Negative", 0, 0.0 
+    Determine if the document indicates a SAFE/POSITIVE transaction or a RISKY/NEGATIVE one.
+    Look for specific issues like litigation, disputes, or mortgages (Negative), or clear titles and ownership (Positive).
+    
+    Respond ONLY with a JSON object in this exact format:
+    {{
+        "status": "Positive" or "Negative",
+        "score": (integer 0-100, where 100 is perfectly safe and 0 is extremely risky),
+        "confidence": (float 0.0-1.0, how sure you are based on the text provided)
+    }}
 
-    if neg_count > 0:
-        status = "Negative"
-        score = max(10, 100 - (neg_count * 20)) 
-        confidence = 0.85
-    else:
-        status = "Positive"
-        score = min(98, 50 + (pos_count * 10))
-        confidence = 0.90
+    Extracted Text:
+    {text[:4000]}  # Limit text length to avoid token limits if file is huge
+    """
 
-    return status, score, confidence
+    try:
+        # 3. Call the API
+        response = model.generate_content(prompt)
+        
+        # 4. Clean and Parse Response
+        # Sometimes AI adds markdown ```json ... ``` wrappers, we remove them
+        result_text = response.text.replace('```json', '').replace('```', '').strip()
+        data = json.loads(result_text)
+        print(f"AI Analysis Result: {data}")
+        
+        return data['status'], data['score'], data['confidence']
+
+    except Exception as e:
+        print(f"AI Error: {e}")
+        # Fallback to a default if API fails (e.g., internet down)
+        return "Negative", 0, 0.0
+
 
 # --- VIEW 1: Registration ---
 def signup_view(request):
@@ -130,14 +198,19 @@ def profile_view(request):
     else:
         form = DocumentForm()
 
-    # Handle Displaying List
-    user_documents = Document.objects.filter(user=request.user).order_by('-uploaded_at')
+    # # Handle Displaying List
+    # user_documents = Document.objects.filter(user=request.user).order_by('-uploaded_at')
+
+#add pagination
+    all_documents = Document.objects.filter(user=request.user).order_by('-uploaded_at')
+    paginator = Paginator(all_documents, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
     return render(request, 'ReviewApp/profile.html', {
         'form': form,
-        'documents': user_documents
+        'documents': page_obj
     })
-
 
 def download_report(request, doc_id):
     # 1. Get the document object
