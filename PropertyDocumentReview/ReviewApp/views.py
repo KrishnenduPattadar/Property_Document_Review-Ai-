@@ -97,9 +97,9 @@ def extract_text_from_file(file_path):
 # Configure the API with your key
 load_dotenv()
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-# for m in genai.list_models():
-#     if 'generateContent' in m.supported_generation_methods:
-# #         print(m.name)
+for m in genai.list_models():
+    if 'generateContent' in m.supported_generation_methods:
+        print(m.name)
 
 # AI Status (Positive / Negative)
 # Positive: Gemini read the text and found words like "Absolute Owner" or "Clear Title," deciding it is safe to buy.
@@ -115,9 +115,19 @@ genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 # 0.99 (High): The text was very clear, and the AI is certain about its decision.
 # 0.50 (Low): The text might be short, blurry, or confusing, so the AI is guessing.
 def analyze_document(text):
+# FORM KRISH, AI Generation Config besuase when i uplode same file result showing different becuase of temperature which in gemini provide so every time cretive ans for same file retuning so set temperature 0 for same result
+    # BUT becuase of free version of gemini i am not able to set temperature so in paid version we can set temperature to 0
+    # generation_config = {
+    #     "temperature": 0.0,
+    #     "top_p": 1,
+    #     "top_k": 1,
+    #     "max_output_tokens": 2048,
+    #     "response_mime_type": "application/json", # Forces Gemini to output pure JSON
+    # }
     
     # 1. Setup the Model
-    model = genai.GenerativeModel('gemini-flash-latest')    
+    model = genai.GenerativeModel('gemini-flash-latest')
+    # generation_config=generation_config)   
     prompt = f"""
     You are a Real Estate Legal Expert. Analyze the following extracted text from a property document.
     

@@ -19,10 +19,14 @@
 
     <div class="card p-4 mb-4 shadow-sm">
         <h4>Upload Document</h4>
-        <form method="post" enctype="multipart/form-data">
+        <form method="post" enctype="multipart/form-data" id="uploadForm">
             {% csrf_token %}
             {{ form.as_p }}
-            <button type="submit" class="btn btn-primary">Upload & Run AI</button>
+        
+            <button type="submit" class="btn btn-primary px-4" id="uploadBtn">
+                <span class="spinner-border spinner-border-sm d-none me-2" id="loadingSpinner" role="status" aria-hidden="true"></span>
+                <span id="btnText">Upload & Run AI</span>
+            </button>
         </form>
     </div>
 
@@ -94,7 +98,7 @@
                                 </div>
                             </div>
                         </div>
-                        </td>
+                    </td>
                 </tr>
                 {% empty %}
                 <tr>
@@ -104,19 +108,13 @@
             </tbody>
         </table>
 
-        {% comment %} this for pagination {% endcomment %}
         {% if documents.has_other_pages %}
         <nav aria-label="Page navigation" class="mt-4">
-            <ul class="pagination justify-content-center">
-        
+            <ul class="pagination justify-content-end">
             {% if documents.has_previous %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ documents.previous_page_number }}">Previous</a>
-                </li>
+                <li class="page-item"><a class="page-link" href="?page={{ documents.previous_page_number }}">Previous</a></li>
             {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link">Previous</span>
-                </li>
+                <li class="page-item disabled"><span class="page-link">Previous</span></li>
             {% endif %}
 
             {% for i in documents.paginator.page_range %}
@@ -128,20 +126,40 @@
             {% endfor %}
 
             {% if documents.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ documents.next_page_number }}">Next</a>
-                </li>
+                <li class="page-item"><a class="page-link" href="?page={{ documents.next_page_number }}">Next</a></li>
             {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link">Next</span>
-                </li>
+                <li class="page-item disabled"><span class="page-link">Next</span></li>
             {% endif %}
-            
-        </ul>
-    </nav>
-    {% endif %}
-{% comment %} end pagination {% endcomment %}
-
+            </ul>
+        </nav>
+        {% endif %}
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var form = document.getElementById('uploadForm');
+        
+        if (form) {
+            form.addEventListener('submit', function(event) {
+                // Browser validation check
+                if (!form.checkValidity()) {
+                    return; 
+                }
+
+                var btn = document.getElementById('uploadBtn');
+                var spinner = document.getElementById('loadingSpinner');
+                var btnText = document.getElementById('btnText');
+
+                // Small delay to ensure form submits before UI locks
+                setTimeout(function() {
+                    if (btn) btn.disabled = true;
+                    if (spinner) spinner.classList.remove('d-none');
+                    if (btnText) btnText.innerText = "Analyzing...";
+                }, 10);
+            });
+        }
+    });
+</script>
+
 {% endblock %}
