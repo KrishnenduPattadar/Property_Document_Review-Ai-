@@ -28,10 +28,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
+# Allow anyone to access the site (Useful for ngrok testing)
 ALLOWED_HOSTS = ['*']
+# Option B: Allow only ngrok (Safer)
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost').split(',')
 
+# Read the string, split by comma, and make it a list
+# CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'https://127.0.0.1').split(',')
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.ngrok-free.app',
+    'https://127.0.0.1',
+    'http://127.0.0.1',
+    'http://localhost',
+]
 # Application definition
 
 INSTALLED_APPS = [

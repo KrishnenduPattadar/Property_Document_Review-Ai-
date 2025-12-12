@@ -8,8 +8,8 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .forms import SignUpForm, DocumentForm
-from .models import Document
+from .forms import SignUpForm, DocumentForm, ProfileUpdateForm
+from .models import Document, Profile
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 # ReportLab imports
@@ -183,42 +183,60 @@ def signup_view(request):
 # --- VIEW 2: Profile (List + Upload + Analyze) ---
 @login_required
 def profile_view(request):
-    # Handle File Upload
+    # Safety: Ensure user has a profile (creates one if missing)
+    Profile.objects.get_or_create(user=request.user)
+
     if request.method == 'POST':
-        form = DocumentForm(request.POST, request.FILES)
-        if form.is_valid():
-            # 1. Save file partially
-            doc = form.save(commit=False)
-            doc.user = request.user
-            doc.save() # Save to disk to get path
+        # --- CASE 1: Document Upload (Your existing logic) ---
+        # We check if the button named 'upload_doc' was clicked
+        if 'upload_doc' in request.POST:
+            form = DocumentForm(request.POST, request.FILES)
+            p_form = ProfileUpdateForm(instance=request.user.profile) # Keep profile form data valid
+            
+            if form.is_valid():
+                # 1. Save file partially
+                doc = form.save(commit=False)
+                doc.user = request.user
+                doc.save()
 
-            # 2. Run Helpers (Extract & Analyze)
-            extracted_text = extract_text_from_file(doc.file.path)
-            status, score, confidence = analyze_document(extracted_text)
+                # 2. Run Helpers (Extract & Analyze)
+                extracted_text = extract_text_from_file(doc.file.path)
+                status, score, confidence = analyze_document(extracted_text)
 
-            # 3. Update Document with Results
-            doc.extracted_text = extracted_text
-            doc.ai_status = status
-            doc.ai_score = score
-            doc.ai_confidence = confidence
-            doc.save()
+                # 3. Update Document with Results
+                doc.extracted_text = extracted_text
+                doc.ai_status = status
+                doc.ai_score = score
+                doc.ai_confidence = confidence
+                doc.save()
 
-            messages.success(request, "Document uploaded and analyzed!")
-            return redirect('profile')
+                messages.success(request, "Document uploaded and analyzed!")
+                return redirect('profile')
+
+        # --- CASE 2: Update Profile (New logic) ---
+        elif 'update_profile' in request.POST:
+            form = DocumentForm() # Empty doc form
+            p_form = ProfileUpdateForm(request.POST, request.FILES, instance=request.user.profile)
+            
+            if p_form.is_valid():
+                p_form.save()
+                messages.success(request, "Profile updated successfully!")
+                return redirect('profile')
+
     else:
+        # GET Request: Init both forms
         form = DocumentForm()
+        p_form = ProfileUpdateForm(instance=request.user.profile)
 
-    # # Handle Displaying List
-    # user_documents = Document.objects.filter(user=request.user).order_by('-uploaded_at')
-
-#add pagination
+    # --- Pagination Logic (Your existing code) ---
     all_documents = Document.objects.filter(user=request.user).order_by('-uploaded_at')
     paginator = Paginator(all_documents, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
     return render(request, 'ReviewApp/profile.html', {
-        'form': form,
+        'form': form,      # Document Form
+        'p_form': p_form,  # Profile Form
         'documents': page_obj
     })
 

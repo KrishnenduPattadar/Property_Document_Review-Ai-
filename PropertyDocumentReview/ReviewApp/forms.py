@@ -2,7 +2,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from .models import Document
+from .models import Document, Profile
 
 class SignUpForm(UserCreationForm):
     email = forms.EmailField(required=True, help_text="Required for password reset.")
@@ -10,7 +10,14 @@ class SignUpForm(UserCreationForm):
     class Meta:
         model = User
         fields = ('username', 'email', 'first_name', 'last_name')
-
+class ProfileUpdateForm(forms.ModelForm):
+    class Meta:
+        model = Profile
+        fields = ['image', 'phone']
+        widget = {
+            'phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter phone number'}),
+            'image': forms.FileInput(attrs={'class': 'form-control'}),
+        }
 
 class DocumentForm(forms.ModelForm):
     class Meta:
