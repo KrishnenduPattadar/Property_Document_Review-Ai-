@@ -4,7 +4,7 @@
 <div class="container mt-4">
     <h2>Dashboard</h2>
     
-    {% if messages %}
+    {% comment %} {% if messages %}
         {% for message in messages %}
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 {{ message }}
@@ -55,7 +55,7 @@
                 </form>
             </div>
         </div>
-    </div>
+    </div> {% endcomment %}
 
     <div class="card p-4 mb-4 shadow-sm">
         <h4>Upload Document</h4>
